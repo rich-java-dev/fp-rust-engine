@@ -145,7 +145,9 @@ pub fn step_system(ctx: &CanvasRenderingContext2d) {
                 calc_coloumb(p1, p2, k_val);
             }
             if c_on {
-                calc_collision(p1, p2);
+                if calc_detected(p1, p2) {
+                    calc_collision(p1, p2);
+                }
             }
 
             if j == size - 1 {
@@ -179,6 +181,14 @@ fn dampen(e1: &mut Particle, d_val: f64) {
     e1.vel_y = e1.vel_y * (1. - d_val);
 }
 
+fn calc_detected(e1: &mut Particle, e2: &mut Particle) -> bool {
+    let diff_x = e1.pos_x - e2.pos_x;
+    let diff_y = e1.pos_y - e2.pos_y;
+
+    let rad_diff = (diff_x.powf(2.) + diff_y.powf(2.)).powf(0.5);
+    rad_diff <= e1.radius + e2.radius
+}
+
 fn calc_collision(e1: &mut Particle, e2: &mut Particle) {
     let e1_m_ratio = (2. * e2.mass) / (e1.mass + e2.mass);
     let e2_m_ratio = (2. * e1.mass) / (e1.mass + e2.mass);
@@ -206,7 +216,7 @@ fn calc_collision(e1: &mut Particle, e2: &mut Particle) {
     //prevent balls from getting 'stuck' together
     let rad_diff = e1.radius + e2.radius - (vecX_e12.powf(2.) + vecY_e12.powf(2.)).sqrt();
 
-    let diff_comp = rad_diff / (1. as f64).powf(0.5);
+    let diff_comp = rad_diff / (2. as f64).powf(0.5);
 
     // e1 mass is larger, so should dominate and push e2
     if e1.mass > e2.mass {
@@ -284,8 +294,8 @@ fn clear_canvas(ctx: &CanvasRenderingContext2d, width: f64, height: f64) {
 }
 
 fn recalc_position(p: &mut Particle) {
-    // p.pos_x = p.pos_x + p.vel_x * 0.00;
-    // p.pos_y = p.pos_y + p.vel_y * 0.0000000001;
+    p.pos_x = p.pos_x + p.vel_x;
+    p.pos_y = p.pos_y + p.vel_y;
 }
 
 fn draw_circle(
