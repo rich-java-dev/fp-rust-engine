@@ -1,6 +1,7 @@
-
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::prelude::JsValue;
 use web_sys::CanvasRenderingContext2d; // 1.4.0
+
+const PI: f64 = std::f64::consts::PI;
 
 pub fn clear_canvas(ctx: &CanvasRenderingContext2d, width: f64, height: f64) {
     ctx.set_fill_style(&"black".into());
@@ -18,23 +19,22 @@ pub fn draw_circle(
 ) {
     let color_json: JsValue = color.into();
 
-    const PI: f64 = std::f64::consts::PI;
     ctx.begin_path();
-    ctx.arc(pos_x, pos_y, radius + 2.0, 0.0, 2.0 * PI).unwrap();
+    ctx.arc(pos_x, pos_y, radius + 2., 0., 2. * PI).unwrap();
     ctx.set_fill_style(&"black".into());
     ctx.fill();
     ctx.set_stroke_style(&"black".into());
     ctx.stroke();
 
     ctx.begin_path();
-    ctx.arc(pos_x, pos_y, radius, 0.0, 2.0 * PI).unwrap();
+    ctx.arc(pos_x, pos_y, radius + 1., 0., 2. * PI).unwrap();
     ctx.set_fill_style(&color_json);
     ctx.fill();
     ctx.set_stroke_style(&"black".into());
     ctx.stroke();
 
     if elec_on {
-        // geneates a plus/minus sign on the particles to indicate particle is charged
+        // generates a plus/minus sign on the particles to indicate particle is charged
         let line_width: f64 = radius / 4.0;
 
         ctx.set_fill_style(&"black".into());

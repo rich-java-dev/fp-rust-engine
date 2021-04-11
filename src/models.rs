@@ -26,4 +26,6 @@ pub struct SysParams {
     pub d_val: f64,
     pub width: f64,
     pub height: f64,
+    pub is_paused: bool,
+    
 }

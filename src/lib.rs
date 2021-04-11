@@ -8,7 +8,7 @@ mod draw;
 mod models;
 mod phys;
 
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
 extern "C" {
@@ -25,15 +25,17 @@ extern "C" {
 mod app {
     use lazy_static::lazy_static;
     use std::sync::Mutex;
-    use wasm_bindgen::prelude::*;
+    use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
     use web_sys::CanvasRenderingContext2d; // 1.4.0
 
     use draw;
     use models;
     use phys::{
-        calc_collision, calc_coloumb, calc_damping, calc_detected, calc_gravity,
-        calc_wall_collision, recalc_position,
+        calc_collision, calc_coloumb, calc_damping, calc_gravity, calc_wall_collision,
+        collision_detected, recalc_position,
     };
+
+    const PI: f64 = std::f64::consts::PI;
 
     lazy_static! {
         static ref PARAMS: Mutex<models::SysParams> = Mutex::new(models::SysParams {
@@ -50,6 +52,7 @@ mod app {
             d_val: 0.,
             width: 0.,
             height: 0.,
+            is_paused: false,
         });
     }
 
@@ -71,6 +74,7 @@ mod app {
         p.d_val = state.d_val;
         p.width = state.width;
         p.height = state.height;
+        p.is_paused = state.is_paused;
     }
 
     #[wasm_bindgen]
@@ -81,39 +85,58 @@ mod app {
     }
 
     #[wasm_bindgen]
-    pub fn toggle_collisions() {
+    pub fn add_particle(particle: &JsValue) {
+        let particle: models::Particle = particle.into_serde().unwrap();
         let mut p = PARAMS.lock().unwrap();
-        p.collisions_on = !p.collisions_on;
+        p.coll.push(particle);
     }
 
     #[wasm_bindgen]
-    pub fn toggle_gravity() {
+    pub fn remove_particle() {
         let mut p = PARAMS.lock().unwrap();
-        p.gravity_on = !p.gravity_on;
+        p.coll.pop();
     }
 
     #[wasm_bindgen]
-    pub fn toggle_electrostatics() {
+    pub fn enable_collisions(c_on: bool) {
         let mut p = PARAMS.lock().unwrap();
-        p.elec_on = !p.elec_on;
+        p.collisions_on = c_on;
     }
 
     #[wasm_bindgen]
-    pub fn toggle_damping() {
+    pub fn enable_pause(pause: bool) {
         let mut p = PARAMS.lock().unwrap();
-        p.damping_on = !p.damping_on;
+        p.is_paused = pause;
     }
 
     #[wasm_bindgen]
-    pub fn toggle_grid() {
+    pub fn enable_gravity(g_on: bool) {
         let mut p = PARAMS.lock().unwrap();
-        p.grid_on = !p.grid_on;
+        p.gravity_on = g_on;
     }
 
     #[wasm_bindgen]
-    pub fn toggle_vectors() {
+    pub fn enable_electrostatics(e_on: bool) {
         let mut p = PARAMS.lock().unwrap();
-        p.vectors_on = !p.vectors_on;
+        p.elec_on = e_on;
+    }
+
+    #[wasm_bindgen]
+    pub fn enable_damping(d_on: bool) {
+        let mut p = PARAMS.lock().unwrap();
+        p.damping_on = d_on;
+    }
+
+    #[wasm_bindgen]
+    pub fn enable_grid(grid_on: bool) {
+        let mut p = PARAMS.lock().unwrap();
+        p.grid_on = grid_on;
+    }
+
+    #[wasm_bindgen]
+    pub fn enable_vectors(vec_on: bool) {
+        let mut p = PARAMS.lock().unwrap();
+        p.vectors_on = vec_on;
     }
 
     #[wasm_bindgen]
@@ -153,6 +176,48 @@ mod app {
     }
 
     #[wasm_bindgen]
+    pub fn speed_up() {
+        let mut p = PARAMS.lock().unwrap();
+
+        for p1 in &mut p.coll {
+            let p1: &mut models::Particle = p1;
+            p1.vel_x = p1.vel_x * 1.2;
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn slow_down() {
+        let mut p = PARAMS.lock().unwrap();
+
+        for p1 in &mut p.coll {
+            let p1: &mut models::Particle = p1;
+            p1.vel_x = p1.vel_x * 0.8;
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn expand_all() {
+        let mut p = PARAMS.lock().unwrap();
+
+        for p1 in &mut p.coll {
+            let p1: &mut models::Particle = p1;
+            p1.radius *= 1.2;
+            p1.mass = PI * p1.radius.powf(2.);
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn shrink_all() {
+        let mut p = PARAMS.lock().unwrap();
+
+        for p1 in &mut p.coll {
+            let p1: &mut models::Particle = p1;
+            p1.radius *= 0.7;
+            p1.mass = PI * p1.radius.powf(2.);
+        }
+    }
+
+    #[wasm_bindgen]
     pub fn get_params() -> JsValue {
         let p = PARAMS.lock().unwrap();
 
@@ -170,6 +235,7 @@ mod app {
             d_val: p.d_val,
             width: p.width,
             height: p.height,
+            is_paused: p.is_paused,
         };
 
         JsValue::from_serde(&params).unwrap()
@@ -189,48 +255,63 @@ mod app {
         let gravity_on: bool = p.gravity_on;
         let collisions_on: bool = p.collisions_on;
         let damping_on: bool = p.damping_on;
+        let is_paused: bool = p.is_paused;
 
         let g_val: f64 = p.g_val;
         let k_val: f64 = p.k_val;
         let d_val: f64 = p.d_val;
+        let c_val: f64 = p.c_val;
         let width: f64 = p.width;
         let height: f64 = p.height;
 
-        let size = p.coll.len();
-        for i in 0..size {
-            for j in i..size {
-                if i == j {
-                    continue;
-                }
-
-                let (set1, set2) = p.coll.split_at_mut(j);
-                let p1: &mut models::Particle = &mut set1[i];
-                let p2: &mut models::Particle = &mut set2[0];
-
-                if gravity_on {
-                    calc_gravity(p1, p2, g_val);
-                }
-                if elec_on {
-                    calc_coloumb(p1, p2, k_val);
-                }
-                if collisions_on {
-                    if calc_detected(p1, p2) {
-                        calc_collision(p1, p2);
+        if !is_paused {
+            let size = p.coll.len();
+            for i in 0..size {
+                for j in i..size {
+                    if i == j {
+                        continue;
                     }
-                }
 
-                if j == size - 1 {
-                    if damping_on {
-                        calc_damping(p1, d_val);
+                    let (set1, set2) = p.coll.split_at_mut(j);
+                    let p1: &mut models::Particle = &mut set1[i];
+                    let p2: &mut models::Particle = &mut set2[0];
+
+                    if gravity_on {
+                        calc_gravity(p1, p2, g_val);
                     }
-                    recalc_position(p1);
-                    calc_wall_collision(p1, width, height);
+                    if elec_on {
+                        calc_coloumb(p1, p2, k_val);
+                    }
+                    if collisions_on {
+                        if collision_detected(p1, p2) {
+                            calc_collision(p1, p2);
+                        }
+                    }
 
-                    draw::draw_circle(
-                        ctx, elec_on, p1.pos_x, p1.pos_y, p1.radius, p1.charge, &p1.color,
-                    );
+                    if j == size - 1 {
+                        if damping_on {
+                            calc_damping(p1, d_val);
+                        }
+                        recalc_position(p1, c_val);
+                        calc_wall_collision(p1, width, height);
+
+                        // update last particle on the last pair-wise calculations
+                        if j == i + 1 {
+                            if damping_on {
+                                calc_damping(p2, d_val);
+                            }
+                            recalc_position(p2, c_val);
+                            calc_wall_collision(p2, width, height);
+                        }
+                    }
                 }
             }
+        }
+        for p in &mut p.coll {
+            let p1: &models::Particle = p;
+            draw::draw_circle(
+                ctx, elec_on, p1.pos_x, p1.pos_y, p1.radius, p1.charge, &p1.color,
+            );
         }
     }
 }
