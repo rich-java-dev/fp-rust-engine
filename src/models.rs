@@ -11,6 +11,7 @@ pub struct Particle {
     pub charge: f64,
     pub color: String,
 }
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SysParams {
     pub coll: Vec<Particle>,
@@ -27,5 +28,4 @@ pub struct SysParams {
     pub width: f64,
     pub height: f64,
     pub is_paused: bool,
-    
 }

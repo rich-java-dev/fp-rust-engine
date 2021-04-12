@@ -1,4 +1,5 @@
 extern crate lazy_static;
+extern crate rayon;
 extern crate serde;
 extern crate serde_json;
 extern crate wasm_bindgen;
@@ -18,12 +19,9 @@ extern "C" {
     fn log(s: &str);
 }
 
-// macro_rules! console_log {
-//     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
-//     }
-
 mod app {
     use lazy_static::lazy_static;
+    use rayon::prelude::*;
     use std::sync::Mutex;
     use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
     use web_sys::CanvasRenderingContext2d; // 1.4.0
@@ -266,16 +264,10 @@ mod app {
 
         if !is_paused {
             let size = p.coll.len();
+
             for i in 0..size {
-                for j in i..size {
-                    if i == j {
-                        continue;
-                    }
-
-                    let (set1, set2) = p.coll.split_at_mut(j);
-                    let p1: &mut models::Particle = &mut set1[i];
-                    let p2: &mut models::Particle = &mut set2[0];
-
+                let (p1, rest) = p.coll[i..].split_first_mut().unwrap();
+                for p2 in rest {
                     if gravity_on {
                         calc_gravity(p1, p2, g_val);
                     }
@@ -287,30 +279,25 @@ mod app {
                             calc_collision(p1, p2);
                         }
                     }
-
-                    if j == size - 1 {
-                        if damping_on {
-                            calc_damping(p1, d_val);
-                        }
-                        recalc_position(p1, c_val);
-                        calc_wall_collision(p1, width, height);
-
-                        // update last particle on the last pair-wise calculations
-                        if j == i + 1 {
-                            if damping_on {
-                                calc_damping(p2, d_val);
-                            }
-                            recalc_position(p2, c_val);
-                            calc_wall_collision(p2, width, height);
-                        }
-                    }
                 }
             }
+            for body in p.coll.iter_mut() {
+                if damping_on {
+                    calc_damping(body, d_val);
+                }
+                recalc_position(body, c_val);
+                calc_wall_collision(body, width, height);
+            }
         }
-        for p in &mut p.coll {
-            let p1: &models::Particle = p;
+        for body in p.coll.iter_mut() {
             draw::draw_circle(
-                ctx, elec_on, p1.pos_x, p1.pos_y, p1.radius, p1.charge, &p1.color,
+                ctx,
+                elec_on,
+                body.pos_x,
+                body.pos_y,
+                body.radius,
+                body.charge,
+                &body.color,
             );
         }
     }
