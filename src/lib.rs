@@ -1,3 +1,8 @@
+/**
+ *
+ * Basic "Controller"/central API for using in Web app.
+ *
+ */
 extern crate lazy_static;
 extern crate rayon;
 extern crate serde;
@@ -11,6 +16,10 @@ mod phys;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
+/**
+ * Imports Web Browser/JS "Alert" and "Log" functions for debugging/testing/etc.
+ *
+ */
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
@@ -21,7 +30,6 @@ extern "C" {
 
 mod app {
     use lazy_static::lazy_static;
-    use rayon::prelude::*;
     use std::sync::Mutex;
     use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
     use web_sys::CanvasRenderingContext2d; // 1.4.0
@@ -35,6 +43,11 @@ mod app {
 
     const PI: f64 = std::f64::consts::PI;
 
+    /*
+     *
+     * Singleton storing 'global state' of the System objects/particles, and parameters
+     *
+     */
     lazy_static! {
         static ref PARAMS: Mutex<models::SysParams> = Mutex::new(models::SysParams {
             coll: vec![],
@@ -54,6 +67,17 @@ mod app {
         });
     }
 
+    /**
+     *
+     * Controller functions (wasm_bindgen)/external input/calls
+     *
+     */
+
+    /*
+     *
+     * Set Params updates the entire app state
+     *
+     */
     #[wasm_bindgen]
     pub fn set_params(params: &JsValue) {
         let state: models::SysParams = params.into_serde().unwrap();
@@ -80,6 +104,12 @@ mod app {
         let collect: Vec<models::Particle> = collection.into_serde().unwrap();
         let mut p = PARAMS.lock().unwrap();
         p.coll = collect;
+    }
+
+    #[wasm_bindgen]
+    pub fn get_collection() -> JsValue {
+        let params = PARAMS.lock().unwrap();
+        JsValue::from_serde(&params.coll).unwrap()
     }
 
     #[wasm_bindgen]
@@ -180,6 +210,7 @@ mod app {
         for p1 in &mut p.coll {
             let p1: &mut models::Particle = p1;
             p1.vel_x = p1.vel_x * 1.2;
+            p1.vel_y = p1.vel_y * 1.2;
         }
     }
 
@@ -190,6 +221,7 @@ mod app {
         for p1 in &mut p.coll {
             let p1: &mut models::Particle = p1;
             p1.vel_x = p1.vel_x * 0.8;
+            p1.vel_y = p1.vel_y * 0.8;
         }
     }
 
@@ -288,6 +320,9 @@ mod app {
                 recalc_position(body, c_val);
                 calc_wall_collision(body, width, height);
             }
+        }
+        if p.vectors_on {
+            draw::draw_vectors(ctx, &mut p);
         }
         for body in p.coll.iter_mut() {
             draw::draw_circle(

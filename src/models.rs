@@ -1,3 +1,8 @@
+/**
+ *
+ * Basic structures to be transfered to/from JS/Rust.
+ *
+ */
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -10,6 +15,7 @@ pub struct Particle {
     pub vel_y: f64,
     pub charge: f64,
     pub color: String,
+    pub angle: f64,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
