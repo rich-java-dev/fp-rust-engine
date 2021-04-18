@@ -20,6 +20,7 @@ wasm-bindgen = { version = "0.2.34", features = ["serde-serialize"] }
 version = "0.3.4"
 features = [
   'CanvasRenderingContext2d',
+  'MouseEvent',
   'Document',
   'Element',
   'HtmlCanvasElement',

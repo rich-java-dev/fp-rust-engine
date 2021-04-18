@@ -101,8 +101,8 @@ pub fn draw_vectors(ctx: &CanvasRenderingContext2d, params: &mut models::SysPara
     let cols: f64 = params.width / spacing;
     let rows: f64 = params.height / spacing;
 
-    for c in 0..(cols as i32 * 3 + 1) {
-        for r in 0..(rows as i32 * 3 + 1) {
+    for c in 0..(cols as i32 + 1) * 3 {
+        for r in 0..(rows as i32 + 1) * 3 {
             let mut test_pt: models::Particle = models::Particle {
                 mass: 1e-4,
                 radius: 7.,
@@ -113,6 +113,7 @@ pub fn draw_vectors(ctx: &CanvasRenderingContext2d, params: &mut models::SysPara
                 charge: 1e-4,
                 color: String::from("rgb(57, 255, 20)"),
                 angle: 0.,
+                drag_detect: false,
             };
 
             for body in params.coll.iter_mut() {
@@ -135,8 +136,8 @@ fn calc_atan(p: &models::Particle) -> f64 {
 }
 
 pub fn draw_arrow(ctx: &CanvasRenderingContext2d, p: &mut models::Particle) {
-    let p_x = p.pos_x + p.radius * p.angle.sin();
-    let p_y = p.pos_y + p.radius * p.angle.cos();
+    let p_x = p.pos_x + p.radius * p.angle.cos();
+    let p_y = p.pos_y + p.radius * p.angle.sin();
 
     ctx.set_stroke_style(&"red".into());
     ctx.set_line_width(0.5);

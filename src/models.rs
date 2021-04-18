@@ -16,6 +16,7 @@ pub struct Particle {
     pub charge: f64,
     pub color: String,
     pub angle: f64,
+    pub drag_detect: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

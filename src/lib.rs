@@ -14,25 +14,25 @@ mod draw;
 mod models;
 mod phys;
 
-use wasm_bindgen::prelude::wasm_bindgen;
-
-/**
- * Imports Web Browser/JS "Alert" and "Log" functions for debugging/testing/etc.
- *
- */
-#[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
-
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
-
 mod app {
+
+    /**
+     * Imports Web Browser/JS "Alert" and "Log" functions for debugging/testing/etc.
+     *
+     */
+    #[wasm_bindgen]
+    extern "C" {
+        fn alert(s: &str);
+
+        #[wasm_bindgen(js_namespace = console)]
+        fn log(s: &str);
+    }
+
     use lazy_static::lazy_static;
     use std::sync::Mutex;
     use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
-    use web_sys::CanvasRenderingContext2d; // 1.4.0
+    use web_sys::CanvasRenderingContext2d;
+    use web_sys::MouseEvent;
 
     use draw;
     use models;
@@ -334,6 +334,43 @@ mod app {
                 body.charge,
                 &body.color,
             );
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn detect_drag(x: f64, y: f64) {
+        let mut p = PARAMS.lock().unwrap();
+
+        for body in p.coll.iter_mut() {
+            if body.pos_x + body.radius > x && body.pos_x - body.radius < x {
+                if body.pos_y + body.radius > y && body.pos_y - body.radius < y {
+                    body.drag_detect = true;
+                }
+            }
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn handle_drag(x: f64, y: f64) {
+        let mut p = PARAMS.lock().unwrap();
+        for body in p.coll.iter_mut() {
+            if body.drag_detect {
+                body.pos_x = x;
+                body.pos_y = y;
+                body.vel_x = 0.;
+                body.vel_y = 0.;
+            }
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn end_drag() {
+        let mut p = PARAMS.lock().unwrap();
+
+        for body in p.coll.iter_mut() {
+            if body.drag_detect {
+                body.drag_detect = false;
+            }
         }
     }
 }
