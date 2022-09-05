@@ -11,7 +11,7 @@ Originally developed by Mozilla (2010), was meant to overcome many issues in con
 
 ### Native Runtime
 compiles to binaries vs. VM byte-code like Java/C#, doesn't need an interpretter like Python/JS)
-### No Garbage Collector 
+### No Garbage Collector (Requires deeper understanding of resource life-time/scope clean-up)
 ### immutable by default
 
 ### Ownership / Borrowing
