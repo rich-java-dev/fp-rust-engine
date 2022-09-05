@@ -44,6 +44,17 @@ pub fn main() {
 }
 ```
 
+### Macros
+Macros are an important aspect of Rust, providing a natural form for meta-programming, analgous to annotation/decorator patterns. Macros in Rust are highly expressive, based on their high flexibility with concise syntax by operating over AST (Abstract Syntax Tree) syntax.
+
+Example:
+```
+  #[wasm_bindgen]
+  pub fn set_params(params: &JsValue) {...}
+```
+Here we see wasm_bindgen decorating a function, which allows the was_bindgen to dynamically modify/implement/call the 'set_params' function, providing a compilation directive to export the API/functions to be transpiled into raw Web Assembly modules to be consumed by Node applications.
+
+
 ### Cargo
 Rust package manager
 ### Crates
